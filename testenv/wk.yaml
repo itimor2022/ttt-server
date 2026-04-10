@@ -1,0 +1,17 @@
+
+# 悟空IM配置文件
+
+mode: "debug" # 运行模式
+tokenAuthOn: true # 开启token验证
+
+external:
+  ip: "192.168.1.24" # 外网ip
+
+# webhook配置 - 将消息通知发送到业务服务器
+webhook:
+  grpcAddr: "192.168.1.24:6979" # 业务服务器的grpc地址
+
+# 最近会话配置
+conversation:
+  on: true
+
