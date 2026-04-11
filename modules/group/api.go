@@ -484,10 +484,10 @@ func (g *Group) groupCreate(c *wkhttp.Context) {
 		c.ResponseError(errors.New("创建者不存在！"))
 		return
 	}
-	if creatorUser.Category == "normal" {
-		c.ResponseError(errors.New("普通用户不能创建群聊"))
-		return
-	}
+	// if creatorUser.Category == "normal" {
+	// 	c.ResponseError(errors.New("普通用户不能创建群聊"))
+	// 	return
+	// }
 
 	count, err := g.db.querySameDayCreateCountWitUID(creator, util.Toyyyy_MM_dd(time.Now()))
 	if err != nil {
