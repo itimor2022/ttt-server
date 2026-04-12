@@ -319,14 +319,14 @@ func (f *Friend) friendApply(c *wkhttp.Context) {
 		}
 		_, err := f.ctx.DB().Select("normal_user_can_add_friend").From("app_config").OrderDesc("created_at").Limit(1).Load(&appConfigModel)
 		if err != nil {
-			f.Error("查询应用配置错误", zap.Error(err))
-			c.ResponseError(errors.New("查询应用配置错误"))
+			f.Error("普通用户添加好友配置错误", zap.Error(err))
+			c.ResponseError(errors.New("普通用户添加好友配置错误"))
 			return
 		}
 		// 如果普通用户不允许添加好友，则拒绝请求
 		if appConfigModel.NormalUserCanAddFriend != 1 {
 			f.Error("普通用户没有添加好友的权限", zap.String("uid", fromUID))
-			c.ResponseError(errors.New("网络连接失败请检查网络"))
+			c.ResponseError(errors.New("普通用户没有添加好友的权限"))
 			return
 		}
 	}
