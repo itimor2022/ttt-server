@@ -30,3 +30,5 @@ CREATE table `user_red_dot`(
 );
 
 CREATE UNIQUE INDEX `user_red_dot_uid_categoryx` on `user_red_dot` (`uid`,`category`);
+
+ALTER TABLE `user` ADD COLUMN `avatar` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '用户头像';
