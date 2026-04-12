@@ -1,15 +1,80 @@
 version: '3.1'
 services:
-  wukongim:  # 悟空IM通讯服务
-    image: registry.cn-shanghai.aliyuncs.com/wukongim/wukongim:latest
+  wukongim:
+    image: registry.cn-shanghai.aliyuncs.com/wukongim/wukongim:v2.2.0-20250426
+    container_name: ${CONTAINER_NAME}-wk
     restart: always
     ports:
-      - "5100:5100"
-      - "5200:5200"
-      - "5300:5300"
+      - "5001:5001"
+      - "5100:5100" # tcp长连接端口（外网开放）
+      - "5200:5200" # websocket端口（外网开放）
+      - "5300:5300" # 监控端口
     volumes:
-      - ./configs/wk.yaml:/root/wukongim/wk.yaml
+    #   - ./configs/wk.yaml:/root/wukongim/wk.yaml
+      - ./wukongim:/root/wukongim
       - ./logs/wk:/root/wukongim/logs
+    env_file:
+      - .env
+    environment:
+      - WK_EXTERNAL_IP=${EXTERNAL_IP}
+  tangsengdaodaoserver:  # 唐僧叨叨的业务服务
+    image: itimor2022/tsdd:2.2
+    container_name: ${CONTAINER_NAME}-tsdd
+    restart: always
+    command: "api"
+    healthcheck:
+      test: "wget -q -Y off -O /dev/null http://localhost:8090/v1/ping > /dev/null 2>&1"
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "8090:8090"
+      - "6979:6979"
+    env_file:
+      - .env
+    environment:
+      - TS_EXTERNAL_IP=${EXTERNAL_IP}
+      - TS_DB_MYSQLADDR=root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+      - TS_DB_REDISADDR
+    volumes:
+      - ./tsdd/configs/tsdd.yaml:/home/configs/tsdd.yaml
+      - ./tsdd/assets/:/home/assets/
+      - ./logs/tsdd:/home/logs
+  prometheus:  # 监控服务
+    image: registry.cn-shanghai.aliyuncs.com/wukongim/prometheus:v2.53.1
+    container_name: ${CONTAINER_NAME}-prometheus
+    restart: always
+    volumes:
+      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+  mysql:  # mysql数据库
+    container_name: ${CONTAINER_NAME}-mysql
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+    volumes:
+      - ./mysqldata:/var/lib/mysql                    
+  redis:  # redis
+    container_name: ${CONTAINER_NAME}-redis
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
   minio: # minio文件管理服务
     image: minio/minio:latest
     expose:
@@ -24,37 +89,3 @@ services:
       - MINIO_ROOT_PASSWORD
       - MINIO_SERVER_URL
       - MINIO_BROWSER_REDIRECT_URL
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-    volumes:
-      - ./miniodata:/data    
-  mysql:  # mysql数据库
-    image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
-    ports:
-      - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-    environment:
-      - TZ=Asia/Shanghai
-      - MYSQL_ROOT_PASSWORD
-      - MYSQL_DATABASE
-    volumes:
-      - ./mysqldata:/var/lib/mysql                    
-  redis:  # redis
-    image: redis
-    restart: always
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 1s
-      timeout: 3s
-      retries: 30
-  adminer:  # mysql web管理工具
-    image: adminer:latest
-    ports:
-      - 8306:8080     

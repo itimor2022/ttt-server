@@ -1,0 +1,19 @@
+global:
+  scrape_interval:     15s 
+  evaluation_interval: 15s 
+scrape_configs:
+  - job_name: wukongim1-trace-metrics
+    static_configs:
+    - targets: ['172.17.0.1:15300']
+      labels:
+        id: "1"
+#   - job_name: wukongim2-trace-metrics
+#     static_configs:
+#     - targets: ['172.31.31.74:5300']
+#       labels:
+#         id: "2"
+#   - job_name: wukongim3-trace-metrics
+#     static_configs:
+#     - targets: ['172.31.17.124:5300']
+#       labels:
+#         id: "3"

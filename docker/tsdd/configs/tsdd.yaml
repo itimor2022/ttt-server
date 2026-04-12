@@ -57,7 +57,7 @@ fileService: "minio" # 文件服务 minio or oss or seaweed
 minio: # minio配置
 #  url: "" # minio地址 格式：http://xx.xx.xx.xx:9000 
  accessKeyID: "minio" # minio accessKeyID
- secretAccessKey: "minio123456"  # minio secretAccessKey
+ secretAccessKey: "Aa1234567"  # minio secretAccessKey
 #oss:  # aliyun oss配置
 #  endpoint: "" # oss endpoint 例如 oss-cn-hangzhou.aliyuncs.com
 #  bucketName: "" # bucketName 例如： tangsengdaodao
