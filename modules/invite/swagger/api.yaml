@@ -1,0 +1,101 @@
+swagger: "2.0"
+info:
+  description: "唐僧叨叨 API"
+  version: "1.0.0"
+  title: "唐僧叨叨 API"
+host: "api.botgate.cn"
+tags:
+  - name: "invite"
+    description: "邀请"
+schemes:
+  - "https"
+basePath: "/v1"
+
+paths:
+  /invite:
+    get:
+      tags:
+        - "invite"
+      summary: "获取邀请码"
+      description: "获取邀请码"
+      operationId: "get invite"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "返回"
+          schema:
+            type: object
+            properties:
+              invite_code:
+                type: string
+                description: "邀请码"
+              status:
+                type: integer
+                description: "邀请码状态 1.可用 0.禁用"
+        400:
+          description: '错误'
+          schema:
+            $ref: '#/definitions/response'
+      security:
+        - token: [] 
+  /invite/reset:
+    put:
+      tags:
+        - "invite"
+      summary: "重置邀请码"
+      description: "重置邀请码"
+      operationId: "reset"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "返回"
+          schema:
+           $ref: '#/definitions/response'
+        400:
+          description: '错误'
+          schema:
+            $ref: '#/definitions/response'
+  /invite/status:
+    put:
+      tags:
+        - "invite"
+      summary: "启用或禁用邀请码"
+      description: "启用或禁用邀请码"
+      operationId: "disable or enabled"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "返回"
+          schema:
+             $ref: '#/definitions/response' 
+        400:
+          description: '错误'
+          schema:
+            $ref: '#/definitions/response' 
+      security:
+        - token: []  
+securityDefinitions:
+  token:
+    type: "apiKey"
+    in: "header"
+    name: "token"
+    description: "用户token"
+
+definitions:
+  response:
+    type: "object"
+    properties:
+      status:
+        type: integer
+        format: int
+      msg:
+        type: "string"

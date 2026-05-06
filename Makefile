@@ -1,16 +1,12 @@
 build:
-	docker build -t tangsengdaodaoserver .
+	docker build --platform=linux/amd64 -t tsdd .
 push:
-	docker tag tangsengdaodaoserver registry.cn-shanghai.aliyuncs.com/wukongim/tangsengdaodaoserver:latest
-	docker push registry.cn-shanghai.aliyuncs.com/wukongim/wukongchatserver:latest
+	docker tag tsdd itimor2022/tsdd:2.0
+	docker push itimor2022/tsdd:2.0
 deploy:
-	docker build -t tangsengdaodaoserver . --platform linux/amd64
-	docker tag tangsengdaodaoserver registry.cn-shanghai.aliyuncs.com/wukongim/tangsengdaodaoserver:latest
-	docker push registry.cn-shanghai.aliyuncs.com/wukongim/tangsengdaodaoserver:latest
-deploy-v1.5:
-	docker build -t tangsengdaodaoserver . --platform linux/amd64
-	docker tag tangsengdaodaoserver registry.cn-shanghai.aliyuncs.com/wukongim/tangsengdaodaoserver:v1.5
-	docker push registry.cn-shanghai.aliyuncs.com/wukongim/tangsengdaodaoserver:v1.5
+	docker build --platform=linux/amd64 -t tsdd .
+	docker tag tsdd itimor2022/tsdd:2.0
+	docker push itimor2022/tsdd:2.0
 run-dev:
 	docker-compose build;docker-compose up -d
 stop-dev:
