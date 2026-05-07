@@ -233,10 +233,11 @@ func (co *Conversation) syncUserConversation(c *wkhttp.Context) {
 
 	version := req.Version
 	loginUID := c.GetLoginUID()
+	req.DeviceUUID = strings.TrimSpace(req.DeviceUUID)
 
 	deviceOffsetModelMap := map[string]*deviceOffsetModel{}
 	lastMsgSeqs := req.LastMsgSeqs
-	if !co.ctx.GetConfig().MessageSaveAcrossDevice {
+	if !co.ctx.GetConfig().MessageSaveAcrossDevice && req.DeviceUUID != "" {
 		/**
 		1.获取设备的最大version 作为同步version
 		2. 如果设备最大version不存在 则把用户最大的version 作为设备version
@@ -270,50 +271,47 @@ func (co *Conversation) syncUserConversation(c *wkhttp.Context) {
 
 		// ---------- 设备消息偏移  ----------
 
-		if !co.ctx.GetConfig().MessageSaveAcrossDevice { // 以下为不开启夸设备存储的逻辑
+		lastMsgSeqList := make([]string, 0)
 
-			lastMsgSeqList := make([]string, 0)
-
-			deviceOffsetModels, err := co.deviceOffsetDB.queryWithUIDAndDeviceUUID(loginUID, req.DeviceUUID)
+		deviceOffsetModels, err := co.deviceOffsetDB.queryWithUIDAndDeviceUUID(loginUID, req.DeviceUUID)
+		if err != nil {
+			co.Error("查询用户设备偏移量失败！", zap.Error(err))
+			c.ResponseError(errors.New("查询用户设备偏移量失败！"))
+			return
+		}
+		if len(deviceOffsetModels) > 0 {
+			for _, deviceOffsetM := range deviceOffsetModels {
+				deviceOffsetModelMap[fmt.Sprintf("%s-%d", deviceOffsetM.ChannelID, deviceOffsetM.ChannelType)] = deviceOffsetM
+				lastMsgSeqList = append(lastMsgSeqList, fmt.Sprintf("%s:%d:%d", deviceOffsetM.ChannelID, deviceOffsetM.ChannelType, deviceOffsetM.MessageSeq))
+			}
+		} else { // 如果没有设备的偏移量 则取用户最新的偏移量作为设备偏移量
+			userLastOffsetModels, err := co.userLastOffsetDB.queryWithUID(loginUID)
 			if err != nil {
-				co.Error("查询用户设备偏移量失败！", zap.Error(err))
-				c.ResponseError(errors.New("查询用户设备偏移量失败！"))
+				co.Error("查询用户偏移量失败！", zap.Error(err))
+				c.ResponseError(errors.New("查询用户偏移量失败！"))
 				return
 			}
-			if len(deviceOffsetModels) > 0 {
-				for _, deviceOffsetM := range deviceOffsetModels {
-					deviceOffsetModelMap[fmt.Sprintf("%s-%d", deviceOffsetM.ChannelID, deviceOffsetM.ChannelType)] = deviceOffsetM
-					lastMsgSeqList = append(lastMsgSeqList, fmt.Sprintf("%s:%d:%d", deviceOffsetM.ChannelID, deviceOffsetM.ChannelType, deviceOffsetM.MessageSeq))
+			if len(userLastOffsetModels) > 0 {
+				deviceOffsetList := make([]*deviceOffsetModel, 0, len(userLastOffsetModels))
+				for _, userLastOffsetM := range userLastOffsetModels {
+					deviceOffsetList = append(deviceOffsetList, &deviceOffsetModel{
+						UID:         userLastOffsetM.UID,
+						DeviceUUID:  req.DeviceUUID,
+						ChannelID:   userLastOffsetM.ChannelID,
+						ChannelType: userLastOffsetM.ChannelType,
+						MessageSeq:  userLastOffsetM.MessageSeq,
+					})
+					lastMsgSeqList = append(lastMsgSeqList, fmt.Sprintf("%s:%d:%d", userLastOffsetM.ChannelID, userLastOffsetM.ChannelType, userLastOffsetM.MessageSeq))
 				}
-			} else { // 如果没有设备的偏移量 则取用户最新的偏移量作为设备偏移量
-				userLastOffsetModels, err := co.userLastOffsetDB.queryWithUID(loginUID)
+				err := co.insertDeviceOffsets(deviceOffsetList)
 				if err != nil {
-					co.Error("查询用户偏移量失败！", zap.Error(err))
-					c.ResponseError(errors.New("查询用户偏移量失败！"))
+					c.ResponseError(errors.New("插入设备偏移数据失败！"))
 					return
 				}
-				if len(userLastOffsetModels) > 0 {
-					deviceOffsetList := make([]*deviceOffsetModel, 0, len(userLastOffsetModels))
-					for _, userLastOffsetM := range userLastOffsetModels {
-						deviceOffsetList = append(deviceOffsetList, &deviceOffsetModel{
-							UID:         userLastOffsetM.UID,
-							DeviceUUID:  req.DeviceUUID,
-							ChannelID:   userLastOffsetM.ChannelID,
-							ChannelType: userLastOffsetM.ChannelType,
-							MessageSeq:  userLastOffsetM.MessageSeq,
-						})
-						lastMsgSeqList = append(lastMsgSeqList, fmt.Sprintf("%s:%d:%d", userLastOffsetM.ChannelID, userLastOffsetM.ChannelType, userLastOffsetM.MessageSeq))
-					}
-					err := co.insertDeviceOffsets(deviceOffsetList)
-					if err != nil {
-						c.ResponseError(errors.New("插入设备偏移数据失败！"))
-						return
-					}
-				}
 			}
-			if len(lastMsgSeqList) > 0 {
-				lastMsgSeqs = strings.Join(lastMsgSeqList, "|")
-			}
+		}
+		if len(lastMsgSeqList) > 0 {
+			lastMsgSeqs = strings.Join(lastMsgSeqList, "|")
 		}
 	}
 

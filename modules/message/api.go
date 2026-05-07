@@ -631,6 +631,7 @@ func (m *Message) syncChannelMessage(c *wkhttp.Context) {
 		c.ResponseError(errors.New("数据格式有误！"))
 		return
 	}
+	req.DeviceUUID = strings.TrimSpace(req.DeviceUUID)
 
 	// 如果当前用户不在群内，则直接返回空消息数组
 	if req.ChannelType == common.ChannelTypeGroup.Uint8() {
@@ -1843,16 +1844,20 @@ func newSyncChannelMessageResp(resp *config.SyncChannelMessageResp, loginUID str
 			log.Error("查询频道偏移量失败！", zap.Error(err))
 		}
 
-		// 设备偏移
-		deviceLastMessageSeq, err := deviceOffsetDB.queryMessageSeq(loginUID, deviceUUID, channelID, channelType)
-		if err != nil {
-			log.Error("查询设备消息偏移量失败！", zap.Error(err))
+		// 设备偏移。deviceUUID 为空时不做设备级过滤，避免 Web 端被错误过滤为无消息。
+		var deviceLastMessageSeq int64 = 0
+		useDeviceOffsetFilter := strings.TrimSpace(deviceUUID) != ""
+		if useDeviceOffsetFilter {
+			deviceLastMessageSeq, err = deviceOffsetDB.queryMessageSeq(loginUID, deviceUUID, channelID, channelType)
+			if err != nil {
+				log.Error("查询设备消息偏移量失败！", zap.Error(err))
+			}
 		}
 		for _, message := range resp.Messages {
 			if channelOffsetM != nil && message.MessageSeq <= channelOffsetM.MessageSeq {
 				continue
 			}
-			if message.MessageSeq <= uint32(deviceLastMessageSeq) {
+			if useDeviceOffsetFilter && message.MessageSeq <= uint32(deviceLastMessageSeq) {
 				continue
 			}
 			messageIDStr := strconv.FormatInt(message.MessageID, 10)
